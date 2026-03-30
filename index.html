@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FieldControl — Gestão de Equipamentos em Campo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="screen active">
+  <div class="login-bg">
+    <div class="login-grid"></div>
+  </div>
+  <div class="login-container">
+    <div class="login-brand">
+      <div class="brand-icon">⚡</div>
+      <h1>FieldControl</h1>
+      <p>Sistema de Gestão de Equipamentos em Campo</p>
+    </div>
+    <div class="login-card">
+      <h2>Acesso ao Sistema</h2>
+      <div class="form-group">
+        <label>Usuário</label>
+        <input type="text" id="loginUser" placeholder="Digite seu usuário" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
+      </div>
+      <div id="loginError" class="error-msg hidden"></div>
+      <button class="btn-primary" onclick="doLogin()">Entrar no Sistema</button>
+      <div class="login-hint">
+        <span>fiscal / fiscal123</span>
+        <span>adm / adm123</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appScreen" class="screen">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-mini">
+        <span class="brand-icon-sm">⚡</span>
+        <span>FieldControl</span>
+      </div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <div class="user-badge">
+      <div class="user-avatar" id="userAvatar">F</div>
+      <div class="user-info">
+        <div id="userNameDisplay">Fiscal</div>
+        <div id="userRoleDisplay" class="role-tag">fiscal</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active" onclick="showView('map')" data-view="map">
+        <span class="nav-icon">🗺️</span><span class="nav-label">Mapa</span>
+      </a>
+      <a class="nav-item" onclick="showView('list')" data-view="list">
+        <span class="nav-icon">📋</span><span class="nav-label">Lista</span>
+      </a>
+      <a class="nav-item" onclick="showView('cadastro')" data-view="cadastro">
+        <span class="nav-icon">➕</span><span class="nav-label">Cadastrar</span>
+      </a>
+      <a class="nav-item adm-only hidden" onclick="showView('usuarios')" data-view="usuarios">
+        <span class="nav-icon">👥</span><span class="nav-label">Usuários</span>
+      </a>
+    </nav>
+
+    <button class="btn-logout" onclick="doLogout()">⬅ Sair</button>
+  </aside>
+
+  <!-- CONTENT AREA -->
+  <main class="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
+      <h2 class="topbar-title" id="pageTitle">Mapa de Equipamentos</h2>
+      <div class="topbar-actions">
+        <div class="status-counts">
+          <span class="count-badge installed" id="countInstalled">0 Instalados</span>
+          <span class="count-badge removed" id="countRemoved">0 Retirados</span>
+          <span class="count-badge done" id="countDone">0 Finalizados</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP VIEW -->
+    <div id="viewMap" class="view active">
+      <div class="map-toolbar">
+        <div class="filter-group">
+          <span class="filter-label">Filtrar:</span>
+          <label class="filter-chip installed-chip">
+            <input type="checkbox" checked onchange="updateMapFilter()" data-status="instalado"> Instalado
+          </label>
+          <label class="filter-chip removed-chip">
+            <input type="checkbox" checked onchange="updateMapFilter()" data-status="retirado"> Retirado
+          </label>
+          <label class="filter-chip done-chip">
+            <input type="checkbox" checked onchange="updateMapFilter()" data-status="finalizado"> Finalizado
+          </label>
+        </div>
+        <input type="text" class="map-search" id="mapSearchInput" placeholder="🔍 Buscar chave/ocorrência..." oninput="filterMapSearch()">
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div id="viewList" class="view">
+      <div class="list-toolbar">
+        <input type="text" class="search-input" id="listSearch" placeholder="🔍 Buscar por chave, ocorrência, usuário..." oninput="renderList()">
+        <select class="filter-select" id="listFilter" onchange="renderList()">
+          <option value="">Todos os status</option>
+          <option value="instalado">Instalado</option>
+          <option value="retirado">Retirado</option>
+          <option value="finalizado">Finalizado</option>
+        </select>
+      </div>
+      <div id="equipList" class="equip-list"></div>
+    </div>
+
+    <!-- CADASTRO VIEW -->
+    <div id="viewCadastro" class="view">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>Cadastrar Equipamento</h3>
+          <p>Preencha todos os campos obrigatórios</p>
+        </div>
+        <div class="form-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nº Chave / Poste <span class="required">*</span></label>
+              <input type="text" id="fChave" placeholder="Ex: CH-00123">
+            </div>
+            <div class="form-group">
+              <label>Nº Ocorrência <span class="required">*</span></label>
+              <input type="text" id="fOcorrencia" placeholder="Ex: OC-2024-001">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo de Equipamento</label>
+              <input type="text" id="fTipo" placeholder="Ex: Transformador, Chave, Poste...">
+            </div>
+            <div class="form-group">
+              <label>Endereço / Referência</label>
+              <input type="text" id="fEndereco" placeholder="Ex: Rua das Flores, 123">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observações</label>
+            <textarea id="fObs" rows="3" placeholder="Informações adicionais..."></textarea>
+          </div>
+
+          <div class="gps-section">
+            <div class="gps-header">
+              <span>📍 Localização GPS <span class="required">*</span></span>
+              <button class="btn-gps" onclick="getGPS()">Capturar GPS</button>
+            </div>
+            <div id="gpsStatus" class="gps-status">Clique em "Capturar GPS" para obter sua localização</div>
+            <div id="gpsCoords" class="gps-coords hidden"></div>
+            <div id="miniMap" style="height:200px;border-radius:8px;margin-top:8px;display:none;"></div>
+          </div>
+
+          <div class="photo-section">
+            <label>📸 Foto do Equipamento <span class="required">*</span></label>
+            <div class="photo-upload" id="photoUpload" onclick="document.getElementById('photoInput').click()">
+              <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)" hidden>
+              <div id="photoPreview" class="photo-placeholder">
+                <span class="photo-icon">📷</span>
+                <span>Clique para tirar foto ou selecionar</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="formError" class="error-msg hidden"></div>
+          <button class="btn-primary btn-full" onclick="submitCadastro()">✅ Salvar Equipamento</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- USUARIOS VIEW (ADM only) -->
+    <div id="viewUsuarios" class="view adm-only hidden">
+      <div class="form-container">
+        <div class="form-header">
+          <h3>Gerenciar Usuários</h3>
+          <p>Adicione ou remova usuários do sistema</p>
+        </div>
+        <div class="form-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome de Usuário</label>
+              <input type="text" id="nuUser" placeholder="login do usuário">
+            </div>
+            <div class="form-group">
+              <label>Senha</label>
+              <input type="password" id="nuPass" placeholder="senha">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Perfil</label>
+            <select id="nuRole">
+              <option value="fiscal">Fiscal</option>
+              <option value="adm">Administrador</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="addUser()">Adicionar Usuário</button>
+        </div>
+        <div id="userList" class="user-list"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- POPUP / MODAL -->
+<div id="modal" class="modal-overlay hidden" onclick="closeModal(event)">
+  <div class="modal-box" id="modalBox">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
