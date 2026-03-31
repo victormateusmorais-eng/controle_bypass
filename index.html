@@ -34,10 +34,6 @@
       </div>
       <div id="loginError" class="error-msg hidden"></div>
       <button class="btn-primary" onclick="doLogin()">Entrar no Sistema</button>
-      <div class="login-hint">
-        <span>fiscal / fiscal123</span>
-        <span>adm / adm123</span>
-      </div>
     </div>
   </div>
 </div>
@@ -82,6 +78,7 @@
       <span class="theme-toggle-icon">🌙</span>
       <span id="themeLabel">Modo Claro</span>
     </button>
+    <div id="modeBadge" class="mode-badge local">💾 Modo Local</div>
     <button class="btn-logout" onclick="doLogout()">⬅ Sair</button>
   </aside>
 
@@ -200,32 +197,70 @@
 
     <!-- USUARIOS VIEW (ADM only) -->
     <div id="viewUsuarios" class="view adm-only hidden">
-      <div class="form-container">
-        <div class="form-header">
-          <h3>Gerenciar Usuários</h3>
-          <p>Adicione ou remova usuários do sistema</p>
-        </div>
-        <div class="form-body">
-          <div class="form-row">
+      <div class="users-layout">
+
+        <!-- Painel esquerdo: formulário de cadastro -->
+        <div class="users-form-panel">
+          <div class="form-header">
+            <h3 id="userFormTitle">➕ Novo Usuário</h3>
+            <p id="userFormSubtitle">Preencha os dados para cadastrar</p>
+          </div>
+          <input type="hidden" id="editingUserId" value="">
+          <div class="form-body" style="gap:12px">
             <div class="form-group">
-              <label>Nome de Usuário</label>
-              <input type="text" id="nuUser" placeholder="login do usuário">
+              <label>Nome Completo <span class="required">*</span></label>
+              <input type="text" id="nuName" placeholder="Ex: João Silva">
             </div>
             <div class="form-group">
-              <label>Senha</label>
-              <input type="password" id="nuPass" placeholder="senha">
+              <label>Login (usuário) <span class="required">*</span></label>
+              <input type="text" id="nuUser" placeholder="Ex: joao.silva" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label id="nuPassLabel">Senha <span class="required">*</span></label>
+              <div class="pass-wrapper">
+                <input type="password" id="nuPass" placeholder="Mínimo 4 caracteres" autocomplete="new-password">
+                <button type="button" class="btn-eye" onclick="togglePassVis('nuPass', this)">👁</button>
+              </div>
+              <span id="editPassHint" class="field-hint hidden">Deixe em branco para manter a senha atual</span>
+            </div>
+            <div class="form-group">
+              <label>Perfil <span class="required">*</span></label>
+              <div class="role-selector">
+                <label class="role-option">
+                  <input type="radio" name="nuRole" value="fiscal" checked>
+                  <span class="role-card">
+                    <span class="role-card-icon">👷</span>
+                    <span class="role-card-name">Fiscal</span>
+                    <span class="role-card-desc">Cadastra e finaliza</span>
+                  </span>
+                </label>
+                <label class="role-option">
+                  <input type="radio" name="nuRole" value="adm">
+                  <span class="role-card">
+                    <span class="role-card-icon">🔑</span>
+                    <span class="role-card-name">Administrador</span>
+                    <span class="role-card-desc">Acesso total</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+            <div id="userFormError" class="error-msg hidden"></div>
+            <div style="display:flex;gap:10px">
+              <button class="btn-primary" style="flex:1" id="userFormBtn" onclick="submitUserForm()">➕ Cadastrar Usuário</button>
+              <button class="btn-sm btn-view" id="userCancelBtn" style="display:none;padding:10px 16px" onclick="cancelUserEdit()">Cancelar</button>
             </div>
           </div>
-          <div class="form-group">
-            <label>Perfil</label>
-            <select id="nuRole">
-              <option value="fiscal">Fiscal</option>
-              <option value="adm">Administrador</option>
-            </select>
-          </div>
-          <button class="btn-primary" onclick="addUser()">Adicionar Usuário</button>
         </div>
-        <div id="userList" class="user-list"></div>
+
+        <!-- Painel direito: lista de usuários -->
+        <div class="users-list-panel">
+          <div class="users-list-header">
+            <h3>👥 Usuários Cadastrados</h3>
+            <input type="text" class="search-input" id="userSearch" placeholder="🔍 Buscar usuário..." oninput="renderUsers()" style="max-width:220px;padding:7px 14px;font-size:0.85rem">
+          </div>
+          <div id="userList" class="user-list-full"></div>
+        </div>
+
       </div>
     </div>
 
@@ -240,11 +275,21 @@
   </div>
 </div>
 
+
+
+<!-- SYNC INDICATOR -->
+<div id="syncIndicator" class="sync-indicator hidden">
+  <span class="sync-dot"></span><span id="syncLabel">Sincronizando...</span>
+</div>
+
 <!-- TOAST -->
 <div id="toast" class="toast hidden"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<!-- Firebase v9 compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
