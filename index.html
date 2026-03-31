@@ -78,6 +78,10 @@
       </a>
     </nav>
 
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
+      <span class="theme-toggle-icon">🌙</span>
+      <span id="themeLabel">Modo Claro</span>
+    </button>
     <button class="btn-logout" onclick="doLogout()">⬅ Sair</button>
   </aside>
 
@@ -127,6 +131,9 @@
           <option value="retirado">Retirado</option>
           <option value="finalizado">Finalizado</option>
         </select>
+        <button class="btn-excel" onclick="exportExcel()" title="Exportar planilha Excel">
+          📊 Exportar Excel
+        </button>
       </div>
       <div id="equipList" class="equip-list"></div>
     </div>
@@ -237,6 +244,7 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
