@@ -31,9 +31,20 @@ let miniMap = null;
 let markers = {};
 let capturedGPS = null;
 let capturedPhotoB64 = null;
+let currentTileLayer = null;
+
+// Map tile URLs per theme
+const TILES = {
+  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+};
 
 // ---- INIT ----
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply saved theme before anything renders
+  const savedTheme = localStorage.getItem('fc_theme') || 'dark';
+  if (savedTheme === 'light') applyTheme('light', false);
+
   const session = DB.getSession();
   if (session) {
     currentUser = session;
@@ -122,6 +133,32 @@ window.addEventListener('resize', () => {
   }
 });
 
+// ---- THEME ----
+function toggleTheme() {
+  const isLight = document.body.classList.contains('light-mode');
+  applyTheme(isLight ? 'dark' : 'light', true);
+}
+
+function applyTheme(theme, save = true) {
+  const isLight = theme === 'light';
+  document.body.classList.toggle('light-mode', isLight);
+  const btn = document.getElementById('themeBtn');
+  const label = document.getElementById('themeLabel');
+  if (btn) btn.querySelector('.theme-toggle-icon').textContent = isLight ? '☀️' : '🌙';
+  if (label) label.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+  if (save) localStorage.setItem('fc_theme', theme);
+  updateMapTiles(theme);
+}
+
+function updateMapTiles(theme) {
+  if (!map) return;
+  if (currentTileLayer) map.removeLayer(currentTileLayer);
+  currentTileLayer = L.tileLayer(TILES[theme] || TILES.dark, {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    maxZoom: 19
+  }).addTo(map);
+}
+
 // ---- NAVIGATION ----
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -155,7 +192,8 @@ function initMap() {
     zoomControl: true,
   });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  const theme = localStorage.getItem('fc_theme') || 'dark';
+  currentTileLayer = L.tileLayer(TILES[theme], {
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxZoom: 19
   }).addTo(map);
@@ -194,6 +232,8 @@ function renderMapMarkers() {
 
   equipamentos.forEach(eq => {
     if (!eq.lat || !eq.lng) return;
+    // Finalizados NÃO aparecem no mapa
+    if (eq.status === 'finalizado') return;
     if (!activeFilters.includes(eq.status)) return;
     if (searchVal && !eq.chave?.toLowerCase().includes(searchVal) && !eq.ocorrencia?.toLowerCase().includes(searchVal)) return;
 
@@ -637,6 +677,92 @@ function showToast(msg, type = 'info') {
   t.className = `toast ${type}`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+// ---- EXCEL EXPORT ----
+function exportExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('❌ Biblioteca Excel não carregada. Verifique sua conexão.', 'error');
+    return;
+  }
+
+  const search = (document.getElementById('listSearch')?.value || '').toLowerCase();
+  const filter = document.getElementById('listFilter')?.value || '';
+
+  let items = equipamentos.filter(eq => {
+    const matchSearch = !search ||
+      eq.chave?.toLowerCase().includes(search) ||
+      eq.ocorrencia?.toLowerCase().includes(search) ||
+      eq.usuarioCadastro?.toLowerCase().includes(search) ||
+      eq.tipo?.toLowerCase().includes(search) ||
+      eq.endereco?.toLowerCase().includes(search);
+    const matchFilter = !filter || eq.status === filter;
+    return matchSearch && matchFilter;
+  });
+
+  items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  if (!items.length) {
+    showToast('Nenhum registro para exportar.', 'info');
+    return;
+  }
+
+  const statusLabel = { instalado: 'Instalado', retirado: 'Retirado', finalizado: 'Finalizado' };
+
+  const rows = items.map((eq, i) => ({
+    '#': i + 1,
+    'Nº Chave / Poste': eq.chave || '',
+    'Nº Ocorrência': eq.ocorrencia || '',
+    'Tipo de Equipamento': eq.tipo || '',
+    'Endereço / Referência': eq.endereco || '',
+    'Status': statusLabel[eq.status] || eq.status,
+    'Data Cadastro': eq.dataCadastro || '',
+    'Cadastrado por': eq.usuarioCadastro || '',
+    'Latitude': eq.lat != null ? eq.lat.toFixed(6) : '',
+    'Longitude': eq.lng != null ? eq.lng.toFixed(6) : '',
+    'Equipe Retirada': eq.equipeRetirada || '',
+    'Data Retirada': eq.dataRetirada || '',
+    'Data Finalização': eq.dataFinalizacao || '',
+    'Usuário Finalização': eq.usuarioFinalizacao || '',
+    'Observações': eq.obs || '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  // Column widths
+  ws['!cols'] = [
+    {wch:4},{wch:18},{wch:18},{wch:22},{wch:30},{wch:12},
+    {wch:20},{wch:18},{wch:14},{wch:14},{wch:22},{wch:16},{wch:20},{wch:20},{wch:30}
+  ];
+
+  // Header style (SheetJS community doesn't support styles natively, but set freeze)
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Equipamentos');
+
+  // Summary sheet
+  const counts = { Instalado: 0, Retirado: 0, Finalizado: 0 };
+  equipamentos.forEach(e => {
+    const k = statusLabel[e.status];
+    if (k) counts[k]++;
+  });
+  const summary = [
+    { 'Resumo': 'Total de Equipamentos', 'Quantidade': equipamentos.length },
+    { 'Resumo': 'Instalados', 'Quantidade': counts.Instalado },
+    { 'Resumo': 'Retirados', 'Quantidade': counts.Retirado },
+    { 'Resumo': 'Finalizados', 'Quantidade': counts.Finalizado },
+    { 'Resumo': 'Exportado em', 'Quantidade': formatDate(new Date()) },
+  ];
+  const ws2 = XLSX.utils.json_to_sheet(summary);
+  ws2['!cols'] = [{wch:28},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumo');
+
+  const now = new Date();
+  const fname = `FieldControl_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.xlsx`;
+
+  XLSX.writeFile(wb, fname);
+  showToast(`📊 Planilha exportada: ${fname}`, 'success');
 }
 
 // ---- UTILS ----
