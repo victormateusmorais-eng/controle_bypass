@@ -425,14 +425,100 @@ body {
 .photo-preview-img { max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 8px; }
 
 /* Users */
-.user-list { padding: 16px 0; display: flex; flex-direction: column; gap: 8px; }
-.user-row {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px 16px;
+.users-layout {
+  flex: 1; display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 0; overflow: hidden;
 }
-.user-row-name { flex: 1; font-weight: 500; }
-.user-row-role .role-tag { font-size: 0.72rem; }
+.users-form-panel {
+  background: var(--bg2); border-right: 1px solid var(--border);
+  padding: 24px; overflow-y: auto;
+}
+.users-list-panel {
+  display: flex; flex-direction: column;
+  overflow: hidden; padding: 0;
+}
+.users-list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  background: var(--bg3); flex-shrink: 0;
+}
+.users-list-header h3 {
+  font-family: var(--font-head); font-size: 1rem; font-weight: 700;
+}
+.user-list-full {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+/* User card */
+.user-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  transition: all 0.2s; position: relative;
+}
+.user-card:hover { border-color: var(--border2); }
+.user-card.editing { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(245,166,35,0.15); }
+.user-card-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-weight: 800; font-size: 1.1rem;
+  color: #000;
+}
+.user-card-avatar.adm-av  { background: linear-gradient(135deg, #f5a623, #e8921a); }
+.user-card-avatar.fiscal-av { background: linear-gradient(135deg, #3498db, #2980b9); }
+.user-card-info { flex: 1; min-width: 0; }
+.user-card-name {
+  font-weight: 700; font-size: 0.95rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.user-card-login {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text3); margin-top: 2px;
+}
+.user-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.user-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.user-default-tag {
+  font-size: 0.68rem; color: var(--text3);
+  background: var(--bg3); padding: 2px 8px; border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* Role selector */
+.role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.role-option { cursor: pointer; }
+.role-option input { display: none; }
+.role-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 10px; border-radius: var(--radius);
+  border: 2px solid var(--border); background: var(--bg3);
+  transition: all 0.2s; text-align: center;
+}
+.role-option input:checked + .role-card {
+  border-color: var(--accent); background: rgba(245,166,35,0.08);
+}
+.role-card-icon { font-size: 1.6rem; }
+.role-card-name { font-weight: 700; font-size: 0.85rem; }
+.role-card-desc { font-size: 0.72rem; color: var(--text3); }
+
+/* Pass wrapper */
+.pass-wrapper { display: flex; gap: 6px; }
+.pass-wrapper input { flex: 1; }
+.btn-eye {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0 12px; cursor: pointer;
+  font-size: 0.9rem; color: var(--text2); transition: all 0.2s;
+}
+.btn-eye:hover { border-color: var(--accent); }
+.field-hint { font-size: 0.75rem; color: var(--text3); margin-top: 3px; display: block; }
+
+/* Responsive users */
+@media (max-width: 900px) {
+  .users-layout { grid-template-columns: 1fr; overflow-y: auto; }
+  .users-form-panel { border-right: none; border-bottom: 1px solid var(--border); }
+  .users-list-panel { min-height: 300px; }
+}
 
 /* ---- BUTTONS ---- */
 .btn-primary {
@@ -543,6 +629,38 @@ body {
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
 .empty-state div:first-child { font-size: 3rem; margin-bottom: 12px; }
 .empty-state p { font-size: 1rem; }
+
+/* Sync Indicator */
+.sync-indicator {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 8000; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 20px;
+  padding: 8px 18px; display: flex; align-items: center; gap: 8px;
+  font-size: 0.82rem; color: var(--text2); box-shadow: var(--shadow-sm);
+  animation: slideUp 0.3s ease;
+}
+.sync-indicator.hidden { display: none; }
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+.sync-dot.online { background: var(--green); animation: none; }
+.sync-dot.offline { background: var(--red); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+/* Firebase setup */
+.firebase-setup { text-align: center; }
+.firebase-setup .form-group { text-align: left; }
+
+/* Mode badge in sidebar */
+.mode-badge {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  padding: 3px 8px; border-radius: 10px; margin: 0 16px 4px;
+  text-align: center; font-weight: 500;
+}
+.mode-badge.firebase { background: rgba(255,149,0,0.12); color: #ff9500; border: 1px solid rgba(255,149,0,0.3); }
+.mode-badge.local { background: rgba(107,116,148,0.15); color: var(--text3); border: 1px solid var(--border); }
 
 /* Hidden */
 .hidden { display: none !important; }
