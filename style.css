@@ -1,9 +1,10 @@
 /* ========================================
    FIELDCONTROL — Sistema de Gestão em Campo
-   Aesthetic: Industrial Utilitarian + Dark Command Center
+   Aesthetic: Industrial Utilitarian + Dark/Light Command Center
 ======================================== */
 
 :root {
+  /* DARK MODE (padrão) */
   --bg: #0d0f14;
   --bg2: #141720;
   --bg3: #1c2030;
@@ -31,6 +32,47 @@
   --font-body: 'DM Sans', sans-serif;
   --sidebar-w: 220px;
 }
+
+/* LIGHT MODE */
+body.light-mode {
+  --bg: #f0f2f7;
+  --bg2: #ffffff;
+  --bg3: #e8ebf2;
+  --surface: #ffffff;
+  --surface2: #f5f7fc;
+  --border: #d4d9e8;
+  --border2: #b8c0d8;
+  --text: #1a1f35;
+  --text2: #4a5270;
+  --text3: #8892b0;
+  --shadow: 0 4px 24px rgba(0,0,0,0.1);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+}
+body.light-mode .login-bg {
+  background: linear-gradient(135deg, #e8ecf5 0%, #f0f3fa 50%, #eaeff8 100%);
+}
+body.light-mode .login-grid {
+  background-image:
+    linear-gradient(rgba(245,166,35,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,166,35,0.08) 1px, transparent 1px);
+}
+body.light-mode .leaflet-container { background: #e8edf5 !important; }
+body.light-mode .leaflet-popup-content-wrapper { box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
+
+/* THEME TOGGLE BUTTON */
+.theme-toggle {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 16px 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 14px;
+  cursor: pointer; font-size: 0.8rem; font-family: var(--font-body);
+  color: var(--text2); font-weight: 500;
+  transition: all 0.2s;
+  justify-content: center;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.theme-toggle-icon { font-size: 1rem; transition: transform 0.4s; }
+body.light-mode .theme-toggle-icon { transform: rotate(180deg); }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -283,6 +325,16 @@ body {
   cursor: pointer;
 }
 .filter-select:focus { outline: none; border-color: var(--accent); }
+
+.btn-excel {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: var(--radius);
+  background: rgba(46,204,113,0.12); border: 1px solid rgba(46,204,113,0.4);
+  color: var(--green); font-size: 0.88rem; font-family: var(--font-body);
+  font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-excel:hover { background: rgba(46,204,113,0.22); transform: translateY(-1px); }
 
 .equip-list {
   flex: 1; overflow-y: auto; padding: 16px;
