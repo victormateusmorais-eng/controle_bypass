@@ -424,6 +424,21 @@ body {
 .photo-icon { font-size: 2rem; }
 .photo-preview-img { max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 8px; }
 
+/* Upload progress */
+.upload-progress {
+  margin-top: 8px; display: flex; align-items: center; gap: 10px;
+}
+.upload-progress.hidden { display: none; }
+.upload-progress-bar {
+  flex: 1; height: 6px; background: var(--border);
+  border-radius: 3px; overflow: hidden;
+}
+.upload-progress-fill {
+  height: 100%; background: var(--accent);
+  border-radius: 3px; transition: width 0.3s ease;
+}
+#uploadProgressLabel { font-size: 0.78rem; color: var(--text3); white-space: nowrap; }
+
 /* Users */
 .users-layout {
   flex: 1; display: grid;
