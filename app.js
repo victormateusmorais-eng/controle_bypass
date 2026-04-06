@@ -14,17 +14,19 @@ const FIREBASE_CONFIG = {
 };
 
 // ---- FIREBASE STATE ----
-let fbDb = null;
+let fbDb       = null;
+let fbStorage  = null;
 let fbUnsubscribe = null;
 
 // ---- APP STATE ----
-let currentUser    = null;
-let equipamentos   = [];
-let map            = null;
-let miniMap        = null;
-let markers        = {};
-let capturedGPS    = null;
-let capturedPhotoB64 = null;
+let currentUser      = null;
+let equipamentos     = [];
+let map              = null;
+let miniMap          = null;
+let markers          = {};
+let capturedGPS      = null;
+let capturedPhotoFile = null;   // ← arquivo original (File object)
+let capturedPhotoB64  = null;   // ← preview local (base64 comprimido)
 let currentTileLayer = null;
 
 const TILES = {
@@ -40,8 +42,9 @@ function initFirebase() {
     if (!firebase.apps.length) {
       firebase.initializeApp(FIREBASE_CONFIG);
     }
-    fbDb = firebase.firestore();
-    console.log('✅ Firebase conectado — controle-bypass');
+    fbDb      = firebase.firestore();
+    fbStorage = firebase.storage();
+    console.log('✅ Firebase conectado — controle-bypass (Firestore + Storage)');
     return true;
   } catch (e) {
     console.error('❌ Firebase init error:', e);
@@ -334,7 +337,7 @@ function buildMapPopup(eq) {
     <div class="map-popup-title">${eq.chave}</div>
     <div class="map-popup-row"><strong>Ocorrência:</strong><span>${eq.ocorrencia}</span></div>
     <div class="map-popup-row"><strong>Status:</strong><span>${lbl[eq.status]||eq.status}</span></div>
-    <div class="map-popup-row"><strong>Tipo:</strong><span>${eq.tipo||'—'}</span></div>
+    <div class="map-popup-row"><strong>NDS:</strong><span>${eq.nds||eq.tipo||'—'}</span></div>
     <div class="map-popup-row"><strong>Local:</strong><span>${eq.endereco||'—'}</span></div>
     <div class="map-popup-row"><strong>Cadastro:</strong><span>${eq.dataCadastro}</span></div>
     <div class="map-popup-row"><strong>Usuário:</strong><span>${eq.usuarioCadastro}</span></div>
@@ -379,7 +382,7 @@ function renderList() {
       </div>
       <div class="card-body">
         <span><strong>Ocorrência:</strong>${eq.ocorrencia}</span>
-        <span><strong>Tipo:</strong>${eq.tipo||'—'}</span>
+        <span><strong>NDS:</strong>${eq.nds||eq.tipo||'—'}</span>
         <span><strong>Local:</strong>${eq.endereco||'—'}</span>
         <span><strong>Cadastro:</strong>${eq.dataCadastro} por ${eq.usuarioCadastro}</span>
         ${eq.equipeRetirada ? `<span><strong>Equipe Ret.:</strong>${eq.equipeRetirada} (${eq.dataRetirada})</span>` : ''}
@@ -394,11 +397,12 @@ function resetForm() {
   ['fChave','fOcorrencia','fTipo','fEndereco','fObs'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  capturedGPS = null; capturedPhotoB64 = null;
+  capturedGPS = null; capturedPhotoFile = null; capturedPhotoB64 = null;
   document.getElementById('gpsStatus').textContent = 'Clique em "Capturar GPS" para obter sua localização';
   const gc = document.getElementById('gpsCoords'); gc.textContent = ''; gc.classList.add('hidden');
   document.getElementById('photoPreview').innerHTML = `<span class="photo-icon">📷</span><span>Clique para tirar foto ou selecionar</span>`;
   document.getElementById('photoInput').value = '';
+  setUploadProgress(false);
   const mm = document.getElementById('miniMap'); if (mm) mm.style.display = 'none';
   if (miniMap) { miniMap.remove(); miniMap = null; }
   document.getElementById('formError').classList.add('hidden');
@@ -436,58 +440,156 @@ function initMiniMap(lat, lng) {
 function handlePhoto(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    capturedPhotoB64 = e.target.result;
-    document.getElementById('photoPreview').innerHTML = `<img class="photo-preview-img" src="${capturedPhotoB64}">`;
-  };
-  reader.readAsDataURL(file);
+
+  capturedPhotoFile = file;
+  capturedPhotoB64  = null;
+
+  // Mostrar progresso de compressão
+  setUploadProgress(true, 'Comprimindo imagem...', 30);
+
+  // Comprimir para preview e para upload
+  compressImage(file, 1200, 0.82).then(blob => {
+    capturedPhotoFile = blob; // usa o blob comprimido para upload
+    const reader = new FileReader();
+    reader.onload = e => {
+      capturedPhotoB64 = e.target.result; // preview local
+      document.getElementById('photoPreview').innerHTML =
+        `<img class="photo-preview-img" src="${capturedPhotoB64}">`;
+      setUploadProgress(false);
+    };
+    reader.readAsDataURL(blob);
+  }).catch(() => {
+    // fallback: usa arquivo original se comprimir falhar
+    const reader = new FileReader();
+    reader.onload = e => {
+      capturedPhotoB64 = e.target.result;
+      document.getElementById('photoPreview').innerHTML =
+        `<img class="photo-preview-img" src="${capturedPhotoB64}">`;
+      setUploadProgress(false);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Comprime imagem via Canvas
+function compressImage(file, maxPx, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        if (width > height) { height = Math.round(height * maxPx / width); width = maxPx; }
+        else { width = Math.round(width * maxPx / height); height = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function setUploadProgress(visible, label = '', pct = 0) {
+  const wrap  = document.getElementById('photoUploadProgress');
+  const fill  = document.getElementById('uploadProgressFill');
+  const lbl   = document.getElementById('uploadProgressLabel');
+  if (!wrap) return;
+  if (!visible) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  fill.style.width = pct + '%';
+  lbl.textContent  = label;
+}
+
+// Upload para Firebase Storage e retorna URL pública
+async function uploadPhotoToStorage(blob, equipId) {
+  if (!fbStorage) throw new Error('Firebase Storage não inicializado');
+  const ref  = fbStorage.ref(`fotos/${equipId}.jpg`);
+  const snap = await new Promise((resolve, reject) => {
+    const task = ref.put(blob, { contentType: 'image/jpeg' });
+    task.on('state_changed',
+      s => {
+        const pct = Math.round((s.bytesTransferred / s.totalBytes) * 100);
+        setUploadProgress(true, `Enviando foto... ${pct}%`, pct);
+      },
+      reject,
+      () => resolve(task.snapshot)
+    );
+  });
+  return await snap.ref.getDownloadURL();
 }
 
 async function submitCadastro() {
   const chave      = document.getElementById('fChave').value.trim();
   const ocorrencia = document.getElementById('fOcorrencia').value.trim();
-  const tipo       = document.getElementById('fTipo').value.trim();
+  const nds        = document.getElementById('fTipo').value.trim();
   const endereco   = document.getElementById('fEndereco').value.trim();
   const obs        = document.getElementById('fObs').value.trim();
 
-  if (!chave)          { showFormError('Nº Chave/Poste é obrigatório.'); return; }
-  if (!ocorrencia)     { showFormError('Nº Ocorrência é obrigatório.'); return; }
-  if (!capturedGPS)    { showFormError('Localização GPS é obrigatória. Clique em "Capturar GPS".'); return; }
-  if (!capturedPhotoB64) { showFormError('Foto do equipamento é obrigatória.'); return; }
+  if (!chave)           { showFormError('Nº Chave/Poste é obrigatório.'); return; }
+  if (!ocorrencia)      { showFormError('Nº Ocorrência é obrigatório.'); return; }
+  if (!capturedGPS)     { showFormError('Localização GPS é obrigatória. Clique em "Capturar GPS".'); return; }
+  if (!capturedPhotoFile) { showFormError('Foto do equipamento é obrigatória.'); return; }
 
   document.getElementById('formError').classList.add('hidden');
+  document.querySelector('button.btn-primary.btn-full').disabled = true;
+
+  const equipId = 'eq_' + Date.now();
   const now = new Date();
-  const newEq = {
-    id:              'eq_' + Date.now(),
-    chave, ocorrencia, tipo, endereco, obs,
-    lat:             capturedGPS.lat,
-    lng:             capturedGPS.lng,
-    photo:           capturedPhotoB64,
-    status:          'instalado',
-    dataCadastro:    formatDate(now),
-    usuarioCadastro: currentUser.name || currentUser.username,
-    createdAt:       now.toISOString(),
-    equipeRetirada:  null,
-    dataRetirada:    null,
-    dataFinalizacao: null,
-    usuarioFinalizacao: null,
-  };
 
-  showSyncIndicator('Salvando no Firebase...');
-  await fsAddEquipamento(newEq);
-  hideSyncIndicator();
-  // Listener em tempo real cuida da atualização em todos os dispositivos
+  try {
+    // 1) Upload da foto para Storage
+    showSyncIndicator('Enviando foto...');
+    setUploadProgress(true, 'Iniciando envio...', 5);
+    const photoURL = await uploadPhotoToStorage(capturedPhotoFile, equipId);
+    setUploadProgress(false);
 
-  showToast('✅ Equipamento cadastrado com sucesso!', 'success');
-  resetForm();
-  showView('map');
-  setTimeout(() => {
-    if (map && newEq.lat) {
-      map.flyTo([newEq.lat, newEq.lng], 16, { duration: 1.5 });
-      setTimeout(() => { const m = markers[newEq.id]; if (m) m.openPopup(); }, 1600);
-    }
-  }, 400);
+    // 2) Salva documento no Firestore com URL (não base64)
+    showSyncIndicator('Salvando no Firebase...');
+    const newEq = {
+      id:              equipId,
+      chave, ocorrencia,
+      tipo:            nds,       // campo tipo continua sendo "tipo" no banco
+      nds,                        // também salva como nds para clareza
+      endereco, obs,
+      lat:             capturedGPS.lat,
+      lng:             capturedGPS.lng,
+      photo:           photoURL,  // ← URL do Storage, não base64
+      status:          'instalado',
+      dataCadastro:    formatDate(now),
+      usuarioCadastro: currentUser.name || currentUser.username,
+      createdAt:       now.toISOString(),
+      equipeRetirada:  null,
+      dataRetirada:    null,
+      dataFinalizacao: null,
+      usuarioFinalizacao: null,
+    };
+
+    await fsAddEquipamento(newEq);
+    hideSyncIndicator();
+
+    showToast('✅ Equipamento cadastrado com sucesso!', 'success');
+    resetForm();
+    showView('map');
+    setTimeout(() => {
+      if (map && newEq.lat) {
+        map.flyTo([newEq.lat, newEq.lng], 16, { duration: 1.5 });
+        setTimeout(() => { const m = markers[newEq.id]; if (m) m.openPopup(); }, 1600);
+      }
+    }, 400);
+
+  } catch (err) {
+    console.error('submitCadastro error:', err);
+    setUploadProgress(false);
+    hideSyncIndicator();
+    showFormError('❌ Erro ao salvar: ' + (err.message || 'Verifique sua conexão e tente novamente.'));
+  } finally {
+    const btn = document.querySelector('button.btn-primary.btn-full');
+    if (btn) btn.disabled = false;
+  }
 }
 
 function showFormError(msg) {
@@ -540,7 +642,7 @@ function openEquipamento(id) {
       <div class="popup-field"><label>Status</label>
         <span style="color:${statusColors[eq.status]};font-weight:700;text-transform:uppercase">${eq.status}</span></div>
       <div class="popup-field"><label>Ocorrência</label><span>${eq.ocorrencia}</span></div>
-      <div class="popup-field"><label>Tipo</label><span>${eq.tipo||'—'}</span></div>
+      <div class="popup-field"><label>Nº NDS</label><span>${eq.nds||eq.tipo||'—'}</span></div>
       <div class="popup-field"><label>Endereço</label><span>${eq.endereco||'—'}</span></div>
       <div class="popup-field"><label>Cadastrado em</label><span>${eq.dataCadastro}</span></div>
       <div class="popup-field"><label>Cadastrado por</label><span>${eq.usuarioCadastro}</span></div>
@@ -627,8 +729,8 @@ function editEquipamento(id) {
         <input type="text" id="editChave" value="${eq.chave}"></div>
       <div class="form-group"><label>Nº Ocorrência</label>
         <input type="text" id="editOcorrencia" value="${eq.ocorrencia}"></div>
-      <div class="form-group"><label>Tipo</label>
-        <input type="text" id="editTipo" value="${eq.tipo||''}"></div>
+      <div class="form-group"><label>Número NDS</label>
+        <input type="text" id="editTipo" value="${eq.nds||eq.tipo||''}"></div>
       <div class="form-group"><label>Endereço</label>
         <input type="text" id="editEndereco" value="${eq.endereco||''}"></div>
       <div class="form-group"><label>Status</label>
@@ -644,10 +746,12 @@ function editEquipamento(id) {
 }
 
 async function saveEdit(id) {
+  const nds = document.getElementById('editTipo').value.trim();
   const updates = {
     chave:      document.getElementById('editChave').value.trim(),
     ocorrencia: document.getElementById('editOcorrencia').value.trim(),
-    tipo:       document.getElementById('editTipo').value.trim(),
+    tipo:       nds,
+    nds:        nds,
     endereco:   document.getElementById('editEndereco').value.trim(),
     status:     document.getElementById('editStatus').value,
     obs:        document.getElementById('editObs').value.trim(),
@@ -970,7 +1074,7 @@ function exportExcel() {
     '#': i + 1,
     'Nº Chave / Poste':   eq.chave||'',
     'Nº Ocorrência':      eq.ocorrencia||'',
-    'Tipo de Equipamento':eq.tipo||'',
+    'Número NDS':         eq.nds||eq.tipo||'',
     'Endereço / Referência': eq.endereco||'',
     'Status':             statusLabel[eq.status]||eq.status,
     'Data Cadastro':      eq.dataCadastro||'',
