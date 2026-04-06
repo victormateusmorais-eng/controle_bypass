@@ -155,8 +155,8 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Tipo de Equipamento</label>
-              <input type="text" id="fTipo" placeholder="Ex: Transformador, Chave, Poste...">
+              <label>Número NDS</label>
+              <input type="text" id="fTipo" placeholder="Ex: NDS-00456">
             </div>
             <div class="form-group">
               <label>Endereço / Referência</label>
@@ -186,6 +186,12 @@
                 <span class="photo-icon">📷</span>
                 <span>Clique para tirar foto ou selecionar</span>
               </div>
+            </div>
+            <div id="photoUploadProgress" class="upload-progress hidden">
+              <div class="upload-progress-bar">
+                <div id="uploadProgressFill" class="upload-progress-fill" style="width:0%"></div>
+              </div>
+              <span id="uploadProgressLabel">Comprimindo...</span>
             </div>
           </div>
 
@@ -290,6 +296,7 @@
 <!-- Firebase v9 compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
