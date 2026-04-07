@@ -650,106 +650,149 @@ body.light-mode .theme-toggle-icon { transform: rotate(180deg); }
 ======================================================== */
 @media (max-width: 768px) {
 
-  /* Sidebar vira drawer lateral */
+  /* ---- Impede scroll do body quando sidebar está aberta ---- */
+  body.sidebar-is-open { overflow: hidden; }
+
+  /* ---- Sidebar: drawer lateral sobre tudo ---- */
   .sidebar {
     transform: translateX(-100%);
-    width: min(280px, 80vw);
-    z-index: 300;
-    box-shadow: 4px 0 24px rgba(0,0,0,.5);
+    width: min(280px, 82vw);
+    z-index: 500;                          /* acima de tudo */
+    box-shadow: 6px 0 32px rgba(0,0,0,.6);
+    height: 100vh; height: 100dvh;         /* altura total da tela */
+    top: 0; bottom: auto;                  /* fixa do topo */
   }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar.open  { transform: translateX(0); }
+  .sidebar.collapsed { transform: translateX(-100%); } /* cancela colapso no mobile */
 
-  /* Overlay escuro quando sidebar aberta */
+  /* ---- Overlay escuro sobre o conteúdo, atrás da sidebar ---- */
   .sidebar-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,.55); z-index: 299;
+    display: none !important;              /* escondido por padrão */
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 499;                          /* logo atrás da sidebar */
+    cursor: pointer;
   }
-  .sidebar.open ~ .sidebar-overlay { display: block; }
+  .sidebar.open ~ .sidebar-overlay { display: block !important; }
 
-  /* Main sem margem lateral */
-  .main-content { margin-left: 0 !important; }
+  /* ---- Main: sem margem lateral ---- */
+  .main-content {
+    margin-left: 0 !important;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Nenhum padding-bottom aqui — o mapa precisa do flex-1 limpo */
+  }
 
-  /* Topbar */
+  /* ---- Topbar ---- */
   .topbar-toggle { display: flex !important; align-items: center; justify-content: center; }
-  .topbar { padding: 0 12px; gap: 8px; }
-  .topbar-title { font-size: 0.9rem; }
+  .topbar { padding: 0 12px; gap: 8px; height: var(--topbar-h); }
+  .topbar-title { font-size: 0.88rem; }
   .status-counts { display: none; }
 
-  /* Bottom nav visível em mobile */
+  /* ---- Views: ocupam o espaço entre topbar e bottom-nav ---- */
+  .view {
+    display: none;
+    flex-direction: column;
+    /* altura = tela - topbar - bottom-nav */
+    height: calc(100vh - var(--topbar-h) - var(--bottomnav-h) - var(--safe-bottom));
+    height: calc(100dvh - var(--topbar-h) - var(--bottomnav-h) - var(--safe-bottom));
+    overflow: hidden;
+  }
+  .view.active { display: flex; }
+
+  /* ---- Mapa: ocupa 100% da view ---- */
+  #map {
+    flex: 1;
+    min-height: 0;        /* essencial para flex funcionar */
+    width: 100%;
+    position: relative;
+    z-index: 1;           /* bem abaixo da sidebar (z-index 500) */
+  }
+
+  /* ---- Bottom nav visível ---- */
   .bottom-nav {
-    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-    z-index: 150; background: var(--bg2);
-    border-top: 1px solid var(--border);
-    padding-bottom: var(--safe-bottom);
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 400;                          /* abaixo da sidebar mas acima do mapa */
+    background: var(--bg2);
+    border-top: 2px solid var(--border);
     height: calc(var(--bottomnav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
   }
   .bottom-nav-item {
-    flex: 1; display: flex; flex-direction: column;
+    flex: 1;
+    display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 3px; cursor: pointer;
-    color: var(--text3); font-size: 0.6rem; font-weight: 600;
+    gap: 2px; cursor: pointer;
+    color: var(--text3);
+    font-size: 0.58rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: .3px;
     border: none; background: none;
-    transition: color .2s; padding: 4px;
+    transition: color .15s;
     -webkit-tap-highlight-color: transparent;
-    min-height: var(--bottomnav-h);
+    padding: 6px 4px;
   }
-  .bottom-nav-item .bn-icon { font-size: 1.3rem; line-height: 1; }
-  .bottom-nav-item.active { color: var(--accent); }
-  .bottom-nav-item.adm-only.hidden { display: none; }
+  .bottom-nav-item .bn-icon { font-size: 1.35rem; line-height: 1; }
+  .bottom-nav-item.active   { color: var(--accent); }
+  .bottom-nav-item.adm-only.hidden { display: none !important; }
 
-  /* Views com espaço para bottom nav */
-  .main-content {
-    padding-bottom: calc(var(--bottomnav-h) + var(--safe-bottom));
-    height: 100vh; height: 100dvh;
-  }
-
-  /* Formulário */
+  /* ---- Formulários ---- */
   .form-row { grid-template-columns: 1fr; }
   .form-container { padding: 14px 12px; }
 
-  /* Mapa: toolbar em coluna */
-  .map-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 8px 10px; }
-  .filter-group { width: 100%; }
-  .map-search { margin-left: 0; width: 100%; }
+  /* ---- Mapa toolbar em coluna ---- */
+  .map-toolbar { flex-direction: column; align-items: stretch; gap: 8px; padding: 8px 10px; }
+  .filter-group { width: 100%; flex-wrap: wrap; }
+  .map-search { margin-left: 0; width: 100%; max-width: 100%; }
 
-  /* Lista: toolbar em duas linhas */
+  /* ---- Lista ---- */
   .list-toolbar { padding: 8px 10px; }
   .search-input { min-width: 0; }
-  .btn-excel { font-size: 0.78rem; padding: 8px 10px; }
-
-  /* Equip cards: 1 coluna */
+  .btn-excel { font-size: 0.76rem; padding: 8px 10px; }
   .equip-list { grid-template-columns: 1fr; padding: 10px; gap: 8px; }
 
-  /* Modal: bottom sheet */
-  .modal-overlay { align-items: flex-end; padding: 0; }
+  /* ---- Modal bottom sheet ---- */
+  .modal-overlay { align-items: flex-end; padding: 0; z-index: 600; }
   .modal-box {
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    max-height: 88vh; max-height: 88dvh;
-    width: 100%; padding: 16px 14px;
-    padding-bottom: calc(20px + var(--safe-bottom));
+    max-height: 90vh; max-height: 90dvh;
+    width: 100%;
+    padding: 16px 14px;
+    padding-bottom: calc(24px + var(--safe-bottom));
   }
   .popup-grid { grid-template-columns: 1fr; }
-  .popup-chave { font-size: 1.1rem; }
+  .popup-chave { font-size: 1.05rem; }
   .popup-actions { gap: 6px; }
-  .popup-actions .btn-sm { flex: 1; min-width: 0; font-size: 0.72rem; padding: 8px 6px; text-align: center; }
+  .popup-actions .btn-sm {
+    flex: 1; min-width: 0; font-size: 0.7rem;
+    padding: 9px 4px; text-align: center;
+  }
 
-  /* Usuários: coluna única */
+  /* ---- Usuários: coluna única ---- */
   .users-layout { grid-template-columns: 1fr; overflow-y: auto; }
-  .users-form-panel { border-right: none; border-bottom: 1px solid var(--border); padding: 16px 12px; }
-  .users-list-panel { min-height: 280px; }
-  .users-list-header { padding: 12px; }
+  .users-form-panel { border-right: none; border-bottom: 1px solid var(--border); padding: 14px 12px; }
+  .users-list-panel { min-height: 260px; }
+  .users-list-header { padding: 10px 12px; flex-wrap: wrap; }
   .users-list-header .search-input { max-width: 100% !important; width: 100%; }
 
-  /* Toast e sync */
-  .toast { bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 10px); right: 12px; left: 12px; max-width: 100%; }
-  .sync-indicator { bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 4px); }
+  /* ---- Toast e sync: acima da bottom nav ---- */
+  .toast {
+    bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 10px);
+    right: 12px; left: 12px; max-width: 100%;
+  }
+  .sync-indicator {
+    bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 6px);
+  }
 
-  /* GPS mini-map */
-  #miniMap { height: 160px !important; }
+  /* ---- Mini-map no formulário ---- */
+  #miniMap { height: 150px !important; }
 
-  /* Login */
-  .login-container { padding: 20px 14px; gap: 18px; }
+  /* ---- Login ---- */
+  .login-container { padding: 16px 14px; gap: 16px; }
   .login-brand h1  { font-size: 1.7rem; }
   .login-card      { padding: 20px 16px; }
 }
@@ -758,11 +801,12 @@ body.light-mode .theme-toggle-icon { transform: rotate(180deg); }
    RESPONSIVE — SMALL MOBILE  (max 380px)
 ======================================================== */
 @media (max-width: 380px) {
-  .login-brand h1 { font-size: 1.5rem; }
-  .count-badge    { font-size: 0.6rem; padding: 2px 6px; }
+  .login-brand h1 { font-size: 1.4rem; }
   .topbar-title   { font-size: 0.82rem; }
   .filter-chip    { font-size: 0.7rem; padding: 4px 8px; }
   .card-chave     { font-size: 0.85rem; }
   .popup-title    { font-size: 1rem; }
-  .popup-chave    { font-size: 1rem; }
+  .popup-chave    { font-size: 0.95rem; }
+  .bottom-nav-item { font-size: 0.54rem; }
+  .bottom-nav-item .bn-icon { font-size: 1.2rem; }
 }
