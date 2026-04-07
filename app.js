@@ -283,6 +283,7 @@ function doLogout() {
   if (fbUnsubscribe) { fbUnsubscribe(); fbUnsubscribe = null; }
   localStorage.removeItem('fc_session');
   currentUser = null; equipamentos = [];
+  document.body.classList.remove('sidebar-is-open');
   document.getElementById('loginScreen').classList.add('active');
   document.getElementById('appScreen').classList.remove('active');
   document.getElementById('loginUser').value = '';
@@ -329,7 +330,9 @@ function applyRoleVisibility() {
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   if (window.innerWidth <= 768) {
-    sb.classList.toggle('open');
+    const opening = !sb.classList.contains('open');
+    sb.classList.toggle('open', opening);
+    document.body.classList.toggle('sidebar-is-open', opening);
   } else {
     sb.classList.toggle('collapsed');
     setTimeout(() => { if (map) map.invalidateSize(); }, 350);
@@ -337,9 +340,13 @@ function toggleSidebar() {
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
+  document.body.classList.remove('sidebar-is-open');
 }
 window.addEventListener('resize', () => {
-  if (window.innerWidth > 768) document.getElementById('sidebar').classList.remove('open');
+  if (window.innerWidth > 768) {
+    closeSidebar();
+    if (map) setTimeout(() => map.invalidateSize(), 50);
+  }
 });
 
 function toggleTheme() {
