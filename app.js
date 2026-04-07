@@ -328,9 +328,15 @@ function applyRoleVisibility() {
 // ============================================================
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
-  if (window.innerWidth <= 768) sb.classList.toggle('open');
-  else sb.classList.toggle('collapsed');
-  setTimeout(() => { if (map) map.invalidateSize(); }, 350);
+  if (window.innerWidth <= 768) {
+    sb.classList.toggle('open');
+  } else {
+    sb.classList.toggle('collapsed');
+    setTimeout(() => { if (map) map.invalidateSize(); }, 350);
+  }
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
 }
 window.addEventListener('resize', () => {
   if (window.innerWidth > 768) document.getElementById('sidebar').classList.remove('open');
@@ -360,18 +366,30 @@ function updateMapTiles(theme) {
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-item').forEach(n => n.classList.remove('active'));
+
   const viewEl = document.getElementById('view' + name.charAt(0).toUpperCase() + name.slice(1));
   if (viewEl) viewEl.classList.add('active');
+
+  // Sidebar nav
   const navEl = document.querySelector(`.nav-item[data-view="${name}"]`);
   if (navEl) navEl.classList.add('active');
+
+  // Bottom nav (mobile)
+  const bnEl = document.querySelector(`.bottom-nav-item[data-view="${name}"]`);
+  if (bnEl) bnEl.classList.add('active');
+
   const titles = { map:'Mapa de Equipamentos', list:'Lista de Equipamentos',
                    cadastro:'Cadastrar Equipamento', usuarios:'Gerenciar Usuários' };
   document.getElementById('pageTitle').textContent = titles[name] || name;
+
   if (name === 'map')      setTimeout(() => { if (map) map.invalidateSize(); }, 100);
   if (name === 'list')     renderList();
   if (name === 'usuarios') renderUsers();
   if (name === 'cadastro') resetForm();
-  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+
+  // Fecha sidebar no mobile ao navegar
+  if (window.innerWidth <= 768) closeSidebar();
 }
 
 // ============================================================
