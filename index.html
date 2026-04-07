@@ -2,8 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FieldControl — Gestão de Equipamentos em Campo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0f14">
+<title>FieldControl</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -11,11 +15,9 @@
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
+<!-- ===================== LOGIN ===================== -->
 <div id="loginScreen" class="screen active">
-  <div class="login-bg">
-    <div class="login-grid"></div>
-  </div>
+  <div class="login-bg"><div class="login-grid"></div></div>
   <div class="login-container">
     <div class="login-brand">
       <div class="brand-icon">⚡</div>
@@ -28,17 +30,17 @@
         <label>Usuário</label>
         <input type="text" id="loginUser" placeholder="Digite seu usuário" autocomplete="username">
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-top:12px">
         <label>Senha</label>
         <input type="password" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
       </div>
-      <div id="loginError" class="error-msg hidden"></div>
-      <button class="btn-primary" onclick="doLogin()">Entrar no Sistema</button>
+      <div id="loginError" class="error-msg hidden" style="margin-top:10px"></div>
+      <button class="btn-primary btn-full" style="margin-top:16px" onclick="doLogin()">Entrar no Sistema</button>
     </div>
   </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- ===================== APP ===================== -->
 <div id="appScreen" class="screen">
 
   <!-- SIDEBAR -->
@@ -48,13 +50,13 @@
         <span class="brand-icon-sm">⚡</span>
         <span>FieldControl</span>
       </div>
-      <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Fechar menu">✕</button>
     </div>
 
     <div class="user-badge">
       <div class="user-avatar" id="userAvatar">F</div>
       <div class="user-info">
-        <div id="userNameDisplay">Fiscal</div>
+        <div id="userNameDisplay">Usuário</div>
         <div id="userRoleDisplay" class="role-tag">fiscal</div>
       </div>
     </div>
@@ -82,23 +84,26 @@
     <button class="btn-logout" onclick="doLogout()">⬅ Sair</button>
   </aside>
 
-  <!-- CONTENT AREA -->
+  <!-- Overlay escuro para fechar sidebar no mobile -->
+  <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- CONTEÚDO PRINCIPAL -->
   <main class="main-content">
 
     <!-- TOPBAR -->
     <div class="topbar">
-      <button class="topbar-toggle" onclick="toggleSidebar()">☰</button>
+      <button class="topbar-toggle" onclick="toggleSidebar()" aria-label="Menu">☰</button>
       <h2 class="topbar-title" id="pageTitle">Mapa de Equipamentos</h2>
       <div class="topbar-actions">
         <div class="status-counts">
           <span class="count-badge installed" id="countInstalled">0 Instalados</span>
-          <span class="count-badge removed" id="countRemoved">0 Retirados</span>
-          <span class="count-badge done" id="countDone">0 Finalizados</span>
+          <span class="count-badge removed"    id="countRemoved">0 Retirados</span>
+          <span class="count-badge done"        id="countDone">0 Finalizados</span>
         </div>
       </div>
     </div>
 
-    <!-- MAP VIEW -->
+    <!-- MAPA -->
     <div id="viewMap" class="view active">
       <div class="map-toolbar">
         <div class="filter-group">
@@ -109,33 +114,28 @@
           <label class="filter-chip removed-chip">
             <input type="checkbox" checked onchange="updateMapFilter()" data-status="retirado"> Retirado
           </label>
-          <label class="filter-chip done-chip">
-            <input type="checkbox" checked onchange="updateMapFilter()" data-status="finalizado"> Finalizado
-          </label>
         </div>
         <input type="text" class="map-search" id="mapSearchInput" placeholder="🔍 Buscar chave/ocorrência..." oninput="filterMapSearch()">
       </div>
       <div id="map"></div>
     </div>
 
-    <!-- LIST VIEW -->
+    <!-- LISTA -->
     <div id="viewList" class="view">
       <div class="list-toolbar">
-        <input type="text" class="search-input" id="listSearch" placeholder="🔍 Buscar por chave, ocorrência, usuário..." oninput="renderList()">
+        <input type="text" class="search-input" id="listSearch" placeholder="🔍 Buscar..." oninput="renderList()">
         <select class="filter-select" id="listFilter" onchange="renderList()">
-          <option value="">Todos os status</option>
+          <option value="">Todos</option>
           <option value="instalado">Instalado</option>
           <option value="retirado">Retirado</option>
           <option value="finalizado">Finalizado</option>
         </select>
-        <button class="btn-excel" onclick="exportExcel()" title="Exportar planilha Excel">
-          📊 Exportar Excel
-        </button>
+        <button class="btn-excel" onclick="exportExcel()">📊 Excel</button>
       </div>
       <div id="equipList" class="equip-list"></div>
     </div>
 
-    <!-- CADASTRO VIEW -->
+    <!-- CADASTRO -->
     <div id="viewCadastro" class="view">
       <div class="form-container">
         <div class="form-header">
@@ -146,21 +146,21 @@
           <div class="form-row">
             <div class="form-group">
               <label>Nº Chave / Poste <span class="required">*</span></label>
-              <input type="text" id="fChave" placeholder="Ex: CH-00123">
+              <input type="text" id="fChave" placeholder="Ex: CH-00123" autocomplete="off">
             </div>
             <div class="form-group">
               <label>Nº Ocorrência <span class="required">*</span></label>
-              <input type="text" id="fOcorrencia" placeholder="Ex: OC-2024-001">
+              <input type="text" id="fOcorrencia" placeholder="Ex: OC-2024-001" autocomplete="off">
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>Número NDS</label>
-              <input type="text" id="fTipo" placeholder="Ex: NDS-00456">
+              <input type="text" id="fTipo" placeholder="Ex: NDS-00456" autocomplete="off">
             </div>
             <div class="form-group">
               <label>Endereço / Referência</label>
-              <input type="text" id="fEndereco" placeholder="Ex: Rua das Flores, 123">
+              <input type="text" id="fEndereco" placeholder="Preenchido pelo GPS..." autocomplete="off">
             </div>
           </div>
           <div class="form-group">
@@ -171,11 +171,11 @@
           <div class="gps-section">
             <div class="gps-header">
               <span>📍 Localização GPS <span class="required">*</span></span>
-              <button class="btn-gps" onclick="getGPS()">Capturar GPS</button>
+              <button class="btn-gps" onclick="getGPS()">📡 Capturar GPS</button>
             </div>
             <div id="gpsStatus" class="gps-status">Clique em "Capturar GPS" para obter sua localização</div>
             <div id="gpsCoords" class="gps-coords hidden"></div>
-            <div id="miniMap" style="height:200px;border-radius:8px;margin-top:8px;display:none;"></div>
+            <div id="miniMap" style="height:180px;border-radius:8px;margin-top:8px;display:none;"></div>
           </div>
 
           <div class="photo-section">
@@ -184,14 +184,14 @@
               <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(event)" hidden>
               <div id="photoPreview" class="photo-placeholder">
                 <span class="photo-icon">📷</span>
-                <span>Clique para tirar foto ou selecionar</span>
+                <span>Toque para tirar foto ou selecionar</span>
               </div>
             </div>
             <div id="photoUploadProgress" class="upload-progress hidden">
               <div class="upload-progress-bar">
                 <div id="uploadProgressFill" class="upload-progress-fill" style="width:0%"></div>
               </div>
-              <span id="uploadProgressLabel">Comprimindo...</span>
+              <span id="uploadProgressLabel">Processando...</span>
             </div>
           </div>
 
@@ -201,11 +201,10 @@
       </div>
     </div>
 
-    <!-- USUARIOS VIEW (ADM only) -->
+    <!-- USUÁRIOS (ADM) -->
     <div id="viewUsuarios" class="view adm-only hidden">
       <div class="users-layout">
-
-        <!-- Painel esquerdo: formulário de cadastro -->
+        <!-- Painel esquerdo: formulário -->
         <div class="users-form-panel">
           <div class="form-header">
             <h3 id="userFormTitle">➕ Novo Usuário</h3>
@@ -215,7 +214,7 @@
           <div class="form-body" style="gap:12px">
             <div class="form-group">
               <label>Nome Completo <span class="required">*</span></label>
-              <input type="text" id="nuName" placeholder="Ex: João Silva">
+              <input type="text" id="nuName" placeholder="Ex: João Silva" autocomplete="off">
             </div>
             <div class="form-group">
               <label>Login (usuário) <span class="required">*</span></label>
@@ -225,7 +224,7 @@
               <label id="nuPassLabel">Senha <span class="required">*</span></label>
               <div class="pass-wrapper">
                 <input type="password" id="nuPass" placeholder="Mínimo 4 caracteres" autocomplete="new-password">
-                <button type="button" class="btn-eye" onclick="togglePassVis('nuPass', this)">👁</button>
+                <button type="button" class="btn-eye" onclick="togglePassVis('nuPass',this)">👁</button>
               </div>
               <span id="editPassHint" class="field-hint hidden">Deixe em branco para manter a senha atual</span>
             </div>
@@ -251,37 +250,51 @@
               </div>
             </div>
             <div id="userFormError" class="error-msg hidden"></div>
-            <div style="display:flex;gap:10px">
-              <button class="btn-primary" style="flex:1" id="userFormBtn" onclick="submitUserForm()">➕ Cadastrar Usuário</button>
-              <button class="btn-sm btn-view" id="userCancelBtn" style="display:none;padding:10px 16px" onclick="cancelUserEdit()">Cancelar</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn-primary" style="flex:1" id="userFormBtn" onclick="submitUserForm()">➕ Cadastrar</button>
+              <button class="btn-sm btn-view" id="userCancelBtn" style="display:none;padding:10px 14px" onclick="cancelUserEdit()">Cancelar</button>
             </div>
           </div>
         </div>
 
-        <!-- Painel direito: lista de usuários -->
+        <!-- Painel direito: lista -->
         <div class="users-list-panel">
           <div class="users-list-header">
-            <h3>👥 Usuários Cadastrados</h3>
-            <input type="text" class="search-input" id="userSearch" placeholder="🔍 Buscar usuário..." oninput="renderUsers()" style="max-width:220px;padding:7px 14px;font-size:0.85rem">
+            <h3>👥 Usuários</h3>
+            <input type="text" class="search-input" id="userSearch" placeholder="🔍 Buscar..." oninput="renderUsers()" style="max-width:200px">
           </div>
           <div id="userList" class="user-list-full"></div>
         </div>
-
       </div>
     </div>
 
   </main>
-</div>
 
-<!-- POPUP / MODAL -->
+  <!-- BOTTOM NAV — mobile -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="bottom-nav-item active" onclick="showView('map')" data-view="map">
+      <span class="bn-icon">🗺️</span><span>Mapa</span>
+    </button>
+    <button class="bottom-nav-item" onclick="showView('list')" data-view="list">
+      <span class="bn-icon">📋</span><span>Lista</span>
+    </button>
+    <button class="bottom-nav-item" onclick="showView('cadastro')" data-view="cadastro">
+      <span class="bn-icon">➕</span><span>Cadastrar</span>
+    </button>
+    <button class="bottom-nav-item adm-only hidden" onclick="showView('usuarios')" data-view="usuarios">
+      <span class="bn-icon">👥</span><span>Usuários</span>
+    </button>
+  </nav>
+
+</div><!-- /appScreen -->
+
+<!-- MODAL -->
 <div id="modal" class="modal-overlay hidden" onclick="closeModal(event)">
   <div class="modal-box" id="modalBox">
     <button class="modal-close" onclick="closeModalDirect()">✕</button>
     <div id="modalContent"></div>
   </div>
 </div>
-
-
 
 <!-- SYNC INDICATOR -->
 <div id="syncIndicator" class="sync-indicator hidden">
@@ -293,7 +306,6 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<!-- Firebase v9 compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
