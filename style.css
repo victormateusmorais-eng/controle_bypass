@@ -699,9 +699,38 @@ body.light-mode .theme-toggle-icon { transform: rotate(180deg); }
     /* altura = tela - topbar - bottom-nav */
     height: calc(100vh - var(--topbar-h) - var(--bottomnav-h) - var(--safe-bottom));
     height: calc(100dvh - var(--topbar-h) - var(--bottomnav-h) - var(--safe-bottom));
-    overflow: hidden;
+    overflow: hidden;   /* padrão: sem scroll (mapa usa flex interno) */
   }
   .view.active { display: flex; }
+
+  /* Formulário de cadastro e usuários: scroll vertical completo */
+  #viewCadastro,
+  #viewUsuarios {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* O form-container dentro dessas views não precisa de overflow próprio */
+  #viewCadastro .form-container,
+  #viewUsuarios .users-layout {
+    flex: none;           /* não usa flex para crescer — cresce naturalmente */
+    height: auto;
+    overflow: visible;
+    /* Espaço extra no final para o botão salvar nunca ficar sob a bottom-nav */
+    padding-bottom: 24px;
+  }
+
+  /* Lista: toolbar fixa no topo, cards com scroll */
+  #viewList {
+    overflow: hidden;
+  }
+  #viewList .equip-list {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Padding extra para o último card não ficar colado na bottom-nav */
+    padding-bottom: 16px;
+  }
 
   /* ---- Mapa: ocupa 100% da view ---- */
   #map {
