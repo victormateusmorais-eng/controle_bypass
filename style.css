@@ -713,11 +713,37 @@ body.light-mode .theme-toggle-icon { transform: rotate(180deg); }
   /* O form-container dentro dessas views não precisa de overflow próprio */
   #viewCadastro .form-container,
   #viewUsuarios .users-layout {
-    flex: none;           /* não usa flex para crescer — cresce naturalmente */
+    flex: none;
     height: auto;
     overflow: visible;
-    /* Espaço extra no final para o botão salvar nunca ficar sob a bottom-nav */
-    padding-bottom: 24px;
+    /* Espaço para o botão fixo não cobrir o conteúdo */
+    padding-bottom: 88px;
+  }
+
+  /* Botão SALVAR fixo na parte inferior — sempre visível */
+  #saveCadastroBtn {
+    position: fixed;
+    bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 8px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    z-index: 350;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 -2px 20px rgba(0,0,0,.5), 0 4px 16px rgba(245,166,35,.3);
+    font-size: 1rem;
+    padding: 14px 20px;
+    min-height: 52px;
+  }
+
+  /* Erro do formulário também fica acima do botão fixo */
+  #formError:not(.hidden) {
+    position: fixed;
+    bottom: calc(var(--bottomnav-h) + var(--safe-bottom) + 68px);
+    left: 12px;
+    right: 12px;
+    z-index: 350;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
   }
 
   /* Lista: toolbar fixa no topo, cards com scroll */
