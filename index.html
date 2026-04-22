@@ -32,7 +32,10 @@
       </div>
       <div class="form-group" style="margin-top:12px">
         <label>Senha</label>
-        <input type="password" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
+        <div class="login-pass-wrapper">
+          <input type="password" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
+          <button type="button" class="login-eye-btn" onclick="toggleLoginPass(this)" aria-label="Mostrar senha">👁</button>
+        </div>
       </div>
       <div id="loginError" class="error-msg hidden" style="margin-top:10px"></div>
       <button class="btn-primary btn-full" style="margin-top:16px" onclick="doLogin()">Entrar no Sistema</button>
@@ -170,10 +173,10 @@
 
           <div class="gps-section">
             <div class="gps-header">
-              <span>📍 Localização GPS <span class="required">*</span></span>
+              <span>📍 Localização GPS <span class="gps-optional">(opcional)</span></span>
               <button class="btn-gps" onclick="getGPS()">📡 Capturar GPS</button>
             </div>
-            <div id="gpsStatus" class="gps-status">Clique em "Capturar GPS" para obter sua localização</div>
+            <div id="gpsStatus" class="gps-status">Sem GPS: equipamento será marcado na Rua 2, Jardim Goiás</div>
             <div id="gpsCoords" class="gps-coords hidden"></div>
             <div id="miniMap" style="height:180px;border-radius:8px;margin-top:8px;display:none;"></div>
           </div>
