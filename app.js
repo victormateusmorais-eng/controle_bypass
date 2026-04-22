@@ -449,6 +449,7 @@ function buildMapPopup(eq) {
     <div class="map-popup-row"><strong>Local:</strong><span>${eq.endereco||'—'}</span></div>
     <div class="map-popup-row"><strong>Cadastro:</strong><span>${eq.dataCadastro}</span></div>
     <div class="map-popup-row"><strong>Usuário:</strong><span>${eq.usuarioCadastro}</span></div>
+    ${eq.semGps ? `<div class="map-popup-row" style="color:var(--orange)"><strong>⚠️ GPS:</strong><span>Localização padrão</span></div>` : ''}
     ${eq.equipeRetirada?`<div class="map-popup-row"><strong>Equipe:</strong><span>${eq.equipeRetirada}</span></div>`:''}
     <button class="map-popup-btn" onclick="openEquipamento('${eq.id}')">Ver detalhes completos</button>
   </div>`;
@@ -506,7 +507,7 @@ function resetForm() {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   capturedGPS = null; capturedPhotoBlob = null; capturedPhotoB64 = null;
-  document.getElementById('gpsStatus').textContent = 'Clique em "Capturar GPS" para obter sua localização';
+  document.getElementById('gpsStatus').textContent = 'Sem GPS: equipamento será marcado na Rua 2, Jardim Goiás';
   const gc = document.getElementById('gpsCoords'); if (gc) { gc.textContent=''; gc.classList.add('hidden'); }
   document.getElementById('photoPreview').innerHTML = `<span class="photo-icon">📷</span><span>Clique para tirar foto ou selecionar</span>`;
   document.getElementById('photoInput').value = '';
@@ -607,6 +608,10 @@ function setUploadProgress(visible, label = '', pct = 0) {
   if (lbl)  lbl.textContent  = label;
 }
 
+// Coordenadas padrão: Rua 2, Jardim Goiás, Goiânia - GO
+// Usadas quando o usuário não captura o GPS
+const DEFAULT_GPS = { lat: -16.7048, lng: -49.2340 };
+
 // Salva equipamento — foto em coleção separada "fotos/"
 async function submitCadastro() {
   const chave      = document.getElementById('fChave').value.trim();
@@ -617,8 +622,11 @@ async function submitCadastro() {
 
   if (!chave)            { showFormError('Nº Chave/Poste é obrigatório.'); return; }
   if (!ocorrencia)       { showFormError('Nº Ocorrência é obrigatório.'); return; }
-  if (!capturedGPS)      { showFormError('Localização GPS é obrigatória. Clique em "Capturar GPS".'); return; }
   if (!capturedPhotoB64) { showFormError('Foto do equipamento é obrigatória.'); return; }
+
+  // GPS opcional — usa localização padrão (Rua 2, Jardim Goiás) se não capturado
+  const gps = capturedGPS || DEFAULT_GPS;
+  const semGps = !capturedGPS;
 
   document.getElementById('formError').classList.add('hidden');
   const saveBtn = document.getElementById('saveCadastroBtn');
@@ -640,11 +648,12 @@ async function submitCadastro() {
     const newEq = {
       id:               equipId,
       chave, ocorrencia,
-      nds,  tipo: nds,    // mantém compatibilidade com registros antigos
+      nds,  tipo: nds,
       endereco, obs,
-      lat:              capturedGPS.lat,
-      lng:              capturedGPS.lng,
-      hasPhoto:         true,       // flag indicando que tem foto em "fotos/"
+      lat:              gps.lat,
+      lng:              gps.lng,
+      semGps,           // flag: true = usou localização padrão
+      hasPhoto:         true,
       status:           'instalado',
       dataCadastro:     formatDate(now),
       usuarioCadastro:  currentUser.name || currentUser.username,
@@ -673,11 +682,10 @@ async function submitCadastro() {
     setUploadProgress(false);
     hideSyncIndicator();
     let msg = err.message || 'Verifique sua conexão.';
-    // Mensagens amigáveis para erros comuns do Firestore
-    if (msg.includes('quota'))         msg = 'Cota do Firebase atingida. Tente mais tarde.';
-    if (msg.includes('permission'))    msg = 'Sem permissão. Verifique as regras do Firestore.';
-    if (msg.includes('unavailable'))   msg = 'Firebase indisponível. Verifique sua internet.';
-    if (msg.includes('deadline'))      msg = 'Tempo limite excedido. Verifique a internet e tente novamente.';
+    if (msg.includes('quota'))       msg = 'Cota do Firebase atingida. Tente mais tarde.';
+    if (msg.includes('permission'))  msg = 'Sem permissão. Verifique as regras do Firestore.';
+    if (msg.includes('unavailable')) msg = 'Firebase indisponível. Verifique sua internet.';
+    if (msg.includes('deadline'))    msg = 'Tempo limite excedido. Verifique a internet e tente novamente.';
     showFormError('❌ Erro ao salvar: ' + msg);
   } finally {
     if (saveBtn) saveBtn.disabled = false;
@@ -736,9 +744,9 @@ async function openEquipamento(id) {
       <div class="popup-field"><label>Cadastrado em</label><span>${eq.dataCadastro}</span></div>
       <div class="popup-field"><label>Cadastrado por</label><span>${eq.usuarioCadastro}</span></div>
       <div class="popup-field"><label>Latitude</label>
-        <span style="font-family:var(--font-mono);font-size:0.8rem">${eq.lat?.toFixed(6)}</span></div>
+        <span style="font-family:var(--font-mono);font-size:0.8rem">${eq.lat?.toFixed(6)}${eq.semGps?' <span style="color:var(--orange);font-size:0.7rem">(padrão)</span>':''}</span></div>
       <div class="popup-field"><label>Longitude</label>
-        <span style="font-family:var(--font-mono);font-size:0.8rem">${eq.lng?.toFixed(6)}</span></div>
+        <span style="font-family:var(--font-mono);font-size:0.8rem">${eq.lng?.toFixed(6)}${eq.semGps?' <span style="color:var(--orange);font-size:0.7rem">(padrão)</span>':''}</span></div>
       ${eq.equipeRetirada?`<div class="popup-field"><label>Equipe Retirada</label><span>${eq.equipeRetirada}</span></div>`:''}
       ${eq.dataRetirada?`<div class="popup-field"><label>Data Retirada</label><span>${eq.dataRetirada}</span></div>`:''}
       ${eq.dataFinalizacao?`<div class="popup-field"><label>Finalizado em</label><span>${eq.dataFinalizacao}</span></div>`:''}
@@ -1036,6 +1044,12 @@ function togglePassVis(inputId, btn) {
   const input = document.getElementById(inputId);
   if (input.type==='password') { input.type='text'; btn.textContent='🙈'; }
   else { input.type='password'; btn.textContent='👁'; }
+}
+
+function toggleLoginPass(btn) {
+  const input = document.getElementById('loginPass');
+  if (input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+  else { input.type = 'password'; btn.textContent = '👁'; }
 }
 
 // ============================================================
